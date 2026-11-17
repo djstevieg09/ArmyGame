@@ -20,7 +20,7 @@ func _run() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--level="):
 			only = int(a.substr(8)) - 1
-	print("== Toy Squad level tests ==")
+	print("== Fireteam Fury level tests ==")
 	for i in Levels.count():
 		if only >= 0 and i != only:
 			continue

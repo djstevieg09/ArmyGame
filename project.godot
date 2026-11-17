@@ -3,10 +3,10 @@ config_version=5
 
 [application]
 
-config/name="Toy Squad"
-config/description="Tiny plastic soldiers, giant battlefields."
+config/name="Fireteam Fury"
+config/description="Lead a four-man fireteam through ten war zones."
 run/main_scene="res://main.tscn"
-config/features=PackedStringArray("4.3", "GL Compatibility")
+config/features=PackedStringArray("4.3", "Mobile")
 config/icon="res://assets/icon.png"
 boot_splash/bg_color=Color(0.07, 0.09, 0.12, 1)
 boot_splash/show_image=false
@@ -27,7 +27,7 @@ window/handheld/orientation=4
 
 [gui]
 
-theme/custom_font="res://assets/LilitaOne-Regular.ttf"
+theme/custom_font="res://assets/Oswald.ttf"
 theme/default_font_antialiasing=1
 
 [input_devices]
@@ -40,9 +40,11 @@ common/physics_ticks_per_second=60
 
 [rendering]
 
-renderer/rendering_method="gl_compatibility"
-renderer/rendering_method.mobile="gl_compatibility"
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+rendering_device/fallback_to_opengl3=true
 textures/vram_compression/import_etc2_astc=true
 anti_aliasing/quality/msaa_3d=2
 lights_and_shadows/directional_shadow/size=2048
 lights_and_shadows/directional_shadow/soft_shadow_filter_quality=2
+environment/defaults/default_clear_color=Color(0.1, 0.11, 0.12, 1)

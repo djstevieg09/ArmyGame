@@ -20,11 +20,11 @@ const RANKS := ["Recruit", "Private", "Corporal", "Sergeant", "Lieutenant", "Cap
 
 # Squad paint jobs (cosmetics). Price in coins, 0 = owned by default.
 const SKINS := {
-	"leaf": {"name": "Leaf Green", "color": Color(0.30, 0.78, 0.38), "price": 0},
-	"sky": {"name": "Sky Blue", "color": Color(0.30, 0.62, 0.98), "price": 400},
-	"bubble": {"name": "Bubblegum", "color": Color(0.98, 0.50, 0.75), "price": 600},
-	"gold": {"name": "Gold Leaf", "color": Color(0.98, 0.80, 0.25), "price": 1500},
-	"night": {"name": "Night Ops", "color": Color(0.25, 0.27, 0.35), "price": 2500},
+	"leaf": {"name": "Woodland", "color": Color(0.62, 0.78, 0.52), "price": 0},
+	"sky": {"name": "Urban Grey", "color": Color(0.72, 0.74, 0.78), "price": 400},
+	"bubble": {"name": "Desert Tan", "color": Color(1.0, 0.86, 0.62), "price": 600},
+	"gold": {"name": "Arctic White", "color": Color(1.1, 1.1, 1.12), "price": 1500},
+	"night": {"name": "Night Ops", "color": Color(0.32, 0.34, 0.4), "price": 2500},
 }
 
 var lives := MAX_LIVES
@@ -185,7 +185,7 @@ func finish_mission(level: int, won: bool, survivors: Array, dead: Array, kills:
 		for i in survivors:
 			roster[i]["missions"] += 1
 			roster[i]["rank"] = min(RANKS.size() - 1, roster[i]["rank"] + 1)
-	# Fallen soldiers go to the Toy Box of Honour and are replaced.
+	# Fallen soldiers go to the Roll of Honour and are replaced.
 	var dead_sorted := dead.duplicate()
 	dead_sorted.sort()
 	dead_sorted.reverse()

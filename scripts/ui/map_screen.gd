@@ -1,7 +1,7 @@
 class_name MapScreen
 extends Control
 ## World map: ten mission nodes along a winding path, plus lives, currencies,
-## shop, daily reward and the Toy Box of Honour.
+## shop, daily reward and the Roll of Honour.
 
 var main
 var _lives_label: Label
@@ -21,12 +21,21 @@ func _ready() -> void:
 	var bg := _MapBackground.new()
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+	# satellite-style recon photo of the campaign area, under the route lines
+	var photo := TextureRect.new()
+	photo.texture = load("res://assets/ui/campaign_map.jpg")
+	photo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	photo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	photo.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	photo.show_behind_parent = true
+	photo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.add_child(photo)
 	_build_top_bar()
 	_build_nodes()
 	_build_bottom_bar()
 	Game.changed.connect(_refresh)
 	_refresh()
-	if Game.daily_available():
+	if Game.daily_available() and not "--nodaily" in OS.get_cmdline_user_args():
 		_show_daily.call_deferred()
 
 
@@ -53,7 +62,7 @@ func _build_top_bar() -> void:
 	var gems := UI.pill("", Color(0.5, 0.3, 0.85), 26)
 	_gems_label = gems.get_node("Label")
 	bar.add_child(gems)
-	var title := UI.label("TOY SQUAD", 44, UI.YELLOW, HORIZONTAL_ALIGNMENT_RIGHT)
+	var title := UI.label("FIRETEAM FURY", 44, UI.TEXT, HORIZONTAL_ALIGNMENT_RIGHT)
 	title.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	title.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	title.position = Vector2(-340, 12)
@@ -69,10 +78,10 @@ func _build_bottom_bar() -> void:
 	bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	bar.position = Vector2(20, -20)
 	add_child(bar)
-	var shop := UI.button("Shop", Color(0.6, 0.35, 0.9), 28, Vector2(160, 70))
+	var shop := UI.button("Shop", Color(0.4, 0.28, 0.55), 28, Vector2(160, 70))
 	shop.pressed.connect(_show_shop)
 	bar.add_child(shop)
-	var honour := UI.button("Toy Box of Honour", UI.GREY, 26, Vector2(260, 70))
+	var honour := UI.button("Roll of Honour", UI.GREY, 26, Vector2(260, 70))
 	honour.pressed.connect(_show_honour)
 	bar.add_child(honour)
 	var squad := UI.button("Squad", UI.BLUE, 28, Vector2(150, 70))
@@ -101,12 +110,12 @@ func _build_nodes() -> void:
 	for i in Levels.count():
 		var unlocked := i < Game.unlocked
 		var d := Levels.get_level(i)
-		var col: Color = Levels.THEMES[d["theme"]]["accent"] if unlocked else UI.GREY
+		var col: Color = (UI.ORANGE if i == Game.unlocked - 1 else UI.GREEN) if unlocked else UI.GREY
 		var b := UI.button(str(i + 1), col, 40, Vector2(96, 96))
 		var st: StyleBoxFlat = b.get_theme_stylebox("normal").duplicate()
 		st.set_corner_radius_all(48)
-		st.set_border_width_all(6)
-		st.border_color = Color(1, 1, 1, 0.9) if i == Game.unlocked - 1 else Color(0, 0, 0, 0.3)
+		st.set_border_width_all(5)
+		st.border_color = Color(1, 0.95, 0.85, 0.95) if i == Game.unlocked - 1 else Color(0.05, 0.05, 0.04, 0.75)
 		b.add_theme_stylebox_override("normal", st)
 		var st2: StyleBoxFlat = st.duplicate()
 		st2.bg_color = col.lightened(0.15)
@@ -114,7 +123,7 @@ func _build_nodes() -> void:
 		b.add_theme_stylebox_override("pressed", st2)
 		b.disabled = not unlocked
 		var dis: StyleBoxFlat = st.duplicate()
-		dis.bg_color = Color(0.3, 0.32, 0.36)
+		dis.bg_color = Color(0.18, 0.19, 0.18, 0.85)
 		b.add_theme_stylebox_override("disabled", dis)
 		b.pressed.connect(_show_brief.bind(i))
 		b.name = "L%d" % i
@@ -223,7 +232,7 @@ func _show_brief(i: int) -> void:
 	var back := UI.button("Back", UI.GREY, 28, Vector2(160, 76))
 	back.pressed.connect(_close_popup)
 	row.add_child(back)
-	var go := UI.button("Deploy!", UI.GREEN, 34, Vector2(240, 76))
+	var go := UI.button("Deploy", UI.GREEN, 34, Vector2(240, 76))
 	row.add_child(go)
 	if i < Game.FREE_LIVES_LEVELS or Game.unlimited_lives:
 		v.add_child(UI.label("This mission never costs a life.", 20, Color(1, 1, 1, 0.6), HORIZONTAL_ALIGNMENT_CENTER))
@@ -252,7 +261,7 @@ func _show_no_lives(i: int) -> void:
 			Game.add_lives(1)
 			_show_brief(i))
 	row.add_child(ad)
-	var gem := UI.button("Refill (%d gems)" % Game.GEMS_FOR_LIVES, Color(0.6, 0.35, 0.9), 24, Vector2(240, 72))
+	var gem := UI.button("Refill (%d gems)" % Game.GEMS_FOR_LIVES, Color(0.4, 0.28, 0.55), 24, Vector2(240, 72))
 	gem.disabled = Game.gems < Game.GEMS_FOR_LIVES
 	gem.pressed.connect(func():
 		if Game.buy_lives_with_gems():
@@ -320,7 +329,7 @@ func _show_shop() -> void:
 		if pid == "no_ads" and Game.no_ads:
 			continue
 		var p: Dictionary = Ads.PRODUCTS[pid]
-		var b := UI.button("%s\n%s" % [p["title"], p["price"]], Color(0.45, 0.28, 0.75), 22, Vector2(240, 84))
+		var b := UI.button("%s\n%s" % [p["title"], p["price"]], Color(0.4, 0.28, 0.55), 22, Vector2(240, 84))
 		b.tooltip_text = p["desc"]
 		b.pressed.connect(func():
 			Ads.purchase(self, pid)
@@ -372,9 +381,9 @@ func _show_shop() -> void:
 
 func _show_honour() -> void:
 	var v := _open_popup()
-	v.add_child(UI.label("Toy Box of Honour", 44, UI.YELLOW, HORIZONTAL_ALIGNMENT_CENTER))
+	v.add_child(UI.label("Roll of Honour", 44, UI.YELLOW, HORIZONTAL_ALIGNMENT_CENTER))
 	if Game.fallen.is_empty():
-		v.add_child(UI.label("No toys lost yet. Keep it that way!", 26, UI.TEXT, HORIZONTAL_ALIGNMENT_CENTER))
+		v.add_child(UI.label("No soldiers lost yet. Keep it that way!", 26, UI.TEXT, HORIZONTAL_ALIGNMENT_CENTER))
 	else:
 		var sc := ScrollContainer.new()
 		sc.custom_minimum_size = Vector2(620, 320)
@@ -403,16 +412,7 @@ class _MapBackground:
 
 	func _draw() -> void:
 		var sz := size
-		draw_rect(Rect2(Vector2.ZERO, sz), Color(0.16, 0.36, 0.22))
-		# soft blobs for a playmat look
-		var rng := RandomNumberGenerator.new()
-		rng.seed = 5
-		for i in 40:
-			var c := Vector2(rng.randf() * sz.x, rng.randf() * sz.y)
-			draw_circle(c, rng.randf_range(30, 120), Color(0.2, 0.42, 0.26, 0.5))
-		for i in 26:
-			var c2 := Vector2(rng.randf() * sz.x, rng.randf() * sz.y)
-			draw_circle(c2, rng.randf_range(6, 14), Color(0.95, 0.85, 0.4, 0.25))
+		draw_rect(Rect2(Vector2.ZERO, sz), Color(0, 0, 0, 0.12))
 		if points.size() > 1:
 			var pts := PackedVector2Array()
 			for p in points:
@@ -424,4 +424,4 @@ class _MapBackground:
 				var n := int(a.distance_to(b) / 22.0)
 				for k in n:
 					if k % 2 == 0:
-						draw_line(a.lerp(b, float(k) / n), a.lerp(b, float(k + 1) / n), Color(1, 0.95, 0.8, 0.7), 6.0, true)
+						draw_line(a.lerp(b, float(k) / n), a.lerp(b, float(k + 1) / n), Color(0.95, 0.25, 0.15, 0.85), 5.0, true)

@@ -56,11 +56,11 @@ jobs:
         run: |
           mkdir -p build
           if [ -f release.keystore ]; then MODE=--export-release; else MODE=--export-debug; fi
-          godot --headless $MODE "Android" build/ToySquad.apk
+          godot --headless $MODE "Android" build/FireteamFury.apk
           # The Play Store needs an .aab, which needs Godot's Gradle build.
           godot --headless --install-android-build-template || true
           sed -i 's/gradle_build\/use_gradle_build=false/gradle_build\/use_gradle_build=true/; s/gradle_build\/export_format=0/gradle_build\/export_format=1/' export_presets.cfg
-          godot --headless $MODE "Android" build/ToySquad.aab || echo "AAB export failed"
+          godot --headless $MODE "Android" build/FireteamFury.aab || echo "AAB export failed"
 
       - uses: actions/upload-artifact@v4
         with:

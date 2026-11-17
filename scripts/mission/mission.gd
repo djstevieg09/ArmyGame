@@ -57,6 +57,7 @@ var ui_blocks: Callable = func(_p): return false
 
 var world: Node3D
 var camera: Camera3D
+var camera_follow: Node3D = null
 var cam_focus := Vector3.ZERO
 var pan_offset := Vector3.ZERO
 var zoom := 1.0
@@ -92,29 +93,59 @@ func setup(index: int, roster: Array, opts := {}) -> void:
 
 func _build_environment() -> void:
 	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = theme["sky"]
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.75, 0.78, 0.85)
-	env.ambient_light_energy = 0.3
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.tonemap_exposure = 0.82
-	env.tonemap_white = 1.6
-	env.glow_enabled = false
-	env.glow_intensity = 0.4
-	env.glow_bloom = 0.05
+	var sky := Sky.new()
+	var psm := PanoramaSkyMaterial.new()
+	psm.panorama = load("res://assets/sky/%s.hdr" % theme["sky"])
+	psm.energy_multiplier = 1.0
+	sky.sky_material = psm
+	sky.radiance_size = Sky.RADIANCE_SIZE_64
+	sky.process_mode = Sky.PROCESS_MODE_QUALITY
+	env.background_mode = Environment.BG_SKY
+	env.sky = sky
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.ambient_light_energy = 0.75
+	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.tonemap_exposure = 0.95
+	env.tonemap_white = 6.0
+	env.glow_enabled = true
+	env.glow_intensity = 0.55
+	env.glow_strength = 0.9
+	env.glow_bloom = 0.04
+	env.glow_hdr_threshold = 1.1
+	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
+	env.fog_enabled = true
+	env.fog_light_color = theme["fog"]
+	env.fog_density = 0.0065
+	env.fog_sky_affect = 0.25
+	env.fog_aerial_perspective = 0.4
+	env.adjustment_enabled = true
+	env.adjustment_contrast = 1.08
+	env.adjustment_saturation = 1.06
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-58, -35, 0)
-	sun.light_energy = 0.78
-	sun.light_color = Color(1.0, 0.96, 0.9)
+	sun.rotation_degrees = theme["sun"]
+	sun.light_energy = theme["sun_energy"]
+	sun.light_color = theme["sun_color"]
 	sun.shadow_enabled = true
-	sun.shadow_blur = 1.5
-	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
-	sun.directional_shadow_max_distance = 40.0
+	sun.shadow_blur = 1.2
+	sun.shadow_bias = 0.04
+	sun.shadow_normal_bias = 1.5
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+	sun.directional_shadow_max_distance = 45.0
+	sun.light_angular_distance = 0.6
 	add_child(sun)
+
+
+func debris_color() -> Color:
+	match theme["ground"]:
+		"sand": return Color(0.72, 0.6, 0.42)
+		"snow": return Color(0.85, 0.87, 0.9)
+		"concrete", "asphalt": return Color(0.5, 0.5, 0.5)
+		"grass", "mossy": return Color(0.36, 0.32, 0.22)
+	return Color(0.42, 0.36, 0.28)
 
 
 func _parse_map(roster: Array, god: bool) -> void:
@@ -144,13 +175,14 @@ func _parse_map(roster: Array, god: bool) -> void:
 					cell = Cell.BLOCK
 					var edge := x == 0 or z == 0 or x == W - 1 or z == H - 1
 					if not edge:
-						_place(Models.block(theme_name, theme["block"], seed * 31 + level_index), c)
+						_place(Models.block(theme["block"], seed * 31 + level_index), c).rotation.y = (seed % 4) * PI / 2.0
 				"c":
 					cell = Cell.CRATE
 					crates[c] = _place(Models.crate(seed), c)
 				"T":
 					cell = Cell.TREE
-					_place(Models.plant(theme_name, seed * 17 + level_index), c)
+					var styles: Array = theme["trees"]
+					_place(Models.tree(styles[(seed * 7) % styles.size()], seed * 17 + level_index), c).rotation.y = seed * 1.3
 				"~":
 					cell = Cell.WATER
 				"S":
@@ -165,13 +197,13 @@ func _parse_map(roster: Array, god: bool) -> void:
 					t.set_meta("cell", c)
 				"F":
 					cell = Cell.FORT
-					var node := _place(Models.fort(enemy_col, theme["block"].lerp(Color(0.85, 0.8, 0.7), 0.5)), c)
+					var node := _place(Models.fort(1), c)
 					forts.append({"cell": c, "hp": FORT_HP, "node": node, "cd": 3.0 + forts.size() * 2.0, "alive": true})
 				"H":
 					var h := Unit.new()
 					h.setup(self, Unit.Team.HOSTAGE, "hostage", Color.WHITE)
 					h.position = cell_center(c)
-					h.display_name = "Teddy"
+					h.display_name = "Pilot"
 					world.add_child(h)
 					hostages.append(h)
 				"g", "r":
@@ -205,19 +237,13 @@ func _parse_map(roster: Array, god: bool) -> void:
 			tank.hp = 9999.0
 			tank.max_hp = 9999.0
 		world.add_child(tank)
-	for c in extraction:
-		var q := MeshInstance3D.new()
-		var pm := PlaneMesh.new()
-		pm.size = Vector2(1, 1)
-		q.mesh = pm
-		q.material_override = Models.unshaded(UI.GREEN, 0.35)
-		q.position = cell_center(c) + Vector3(0, 0.015, 0)
-		q.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		world.add_child(q)
 	if not extraction.is_empty():
-		var flag := Models.extraction_flag()
-		flag.position = cell_center(extraction[0])
-		world.add_child(flag)
+		var sum := Vector3.ZERO
+		for c in extraction:
+			sum += cell_center(c)
+		var marker := Models.extraction_marker()
+		marker.position = sum / extraction.size()
+		world.add_child(marker)
 
 
 func _spawn_enemy(kind: String, c: Vector2i, color: Color) -> Unit:
@@ -237,98 +263,277 @@ func _place(node: Node3D, c: Vector2i) -> Node3D:
 	return node
 
 
+const MARGIN := 22
+const HILL_START := 2.5
+
+
+func _height_at(x: float, z: float, noise: FastNoiseLite) -> float:
+	# 0 inside the play area; rolling hills grow with distance outside it.
+	var dx := maxf(maxf(-x, x - W), 0.0)
+	var dz := maxf(maxf(-z, z - H), 0.0)
+	var d := sqrt(dx * dx + dz * dz)
+	if d <= 0.0:
+		return 0.0
+	var t := clampf((d - 0.5) / HILL_START, 0.0, 1.0)
+	var hills := (noise.get_noise_2d(x * 1.4, z * 1.4) * 0.5 + 0.5) * (0.6 + d * 0.22)
+	return t * t * (0.4 + hills * 1.6)
+
+
+func _water_depth(x: int, z: int) -> float:
+	# vertex (x, z) is shared by up to four cells; lower it when all are water.
+	var water := 0
+	var total := 0
+	for oz in [-1, 0]:
+		for ox in [-1, 0]:
+			var c := Vector2i(x + ox, z + oz)
+			if not in_bounds(c):
+				continue
+			total += 1
+			if get_cell(c) == Cell.WATER:
+				water += 1
+	if total == 0 or water == 0:
+		return 0.0
+	return -0.45 * float(water) / float(total)
+
+
 func _build_floor() -> void:
-	# One big table/lawn plane plus a subtle checker of slightly darker tiles.
-	var floor := MeshInstance3D.new()
-	var pm := PlaneMesh.new()
-	pm.size = Vector2(W + 16, H + 16)
-	floor.mesh = pm
-	floor.material_override = _floor_mat(theme["floor"])
-	floor.position = Vector3(W / 2.0, 0, H / 2.0)
-	floor.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	world.add_child(floor)
+	var noise := FastNoiseLite.new()
+	noise.seed = 77 + level_index * 13
+	noise.frequency = 0.035
+	noise.fractal_octaves = 4
+	var patch := FastNoiseLite.new()
+	patch.seed = 5 + level_index
+	patch.frequency = 0.09
+	patch.fractal_octaves = 3
+	var x0 := -MARGIN
+	var z0 := -MARGIN
+	var nx := W + MARGIN * 2 + 1
+	var nz := H + MARGIN * 2 + 1
+	var heights := PackedFloat32Array()
+	heights.resize(nx * nz)
+	var any_water := false
+	for iz in nz:
+		for ix in nx:
+			var x := x0 + ix
+			var z := z0 + iz
+			var h := _height_at(float(x), float(z), noise)
+			if x >= 0 and z >= 0 and x <= W and z <= H:
+				var wd := _water_depth(x, z)
+				if wd < 0.0:
+					any_water = true
+					h = wd
+			heights[iz * nx + ix] = h
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for z in H:
-		for x in W:
-			if (x + z) % 2 == 0 or get_cell(Vector2i(x, z)) == Cell.WATER:
-				continue
-			var y := 0.003
-			var a := Vector3(x, y, z)
-			st.set_normal(Vector3.UP)
-			st.add_vertex(a)
-			st.add_vertex(a + Vector3(1, 0, 0))
-			st.add_vertex(a + Vector3(1, 0, 1))
-			st.add_vertex(a)
-			st.add_vertex(a + Vector3(1, 0, 1))
-			st.add_vertex(a + Vector3(0, 0, 1))
-	var checker := MeshInstance3D.new()
-	checker.mesh = st.commit()
-	checker.material_override = _floor_mat(theme["floor2"])
-	checker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	world.add_child(checker)
-	# outer rim (the edge of the table / fence)
-	var rim_col: Color = theme["block"].darkened(0.15)
-	for side in 4:
-		var horizontal := side < 2
-		var length := W if horizontal else H
-		var rim := MeshInstance3D.new()
-		rim.mesh = Models.box_mesh(Vector3(length, 0.5, 1) if horizontal else Vector3(1, 0.5, length))
-		rim.material_override = Models.mat(rim_col, 0.5)
-		match side:
-			0: rim.position = Vector3(W / 2.0, 0.25, 0.5)
-			1: rim.position = Vector3(W / 2.0, 0.25, H - 0.5)
-			2: rim.position = Vector3(0.5, 0.25, H / 2.0)
-			3: rim.position = Vector3(W - 0.5, 0.25, H / 2.0)
-		world.add_child(rim)
-	# water: a glossy sheet for every water cell
-	var wst := SurfaceTool.new()
-	wst.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var any_water := false
-	for z in H:
-		for x in W:
-			if get_cell(Vector2i(x, z)) != Cell.WATER:
-				continue
-			any_water = true
-			var a := Vector3(x, 0.02, z)
-			wst.set_normal(Vector3.UP)
-			wst.add_vertex(a)
-			wst.add_vertex(a + Vector3(1, 0, 0))
-			wst.add_vertex(a + Vector3(1, 0, 1))
-			wst.add_vertex(a)
-			wst.add_vertex(a + Vector3(1, 0, 1))
-			wst.add_vertex(a + Vector3(0, 0, 1))
+	for iz in nz:
+		for ix in nx:
+			var x := float(x0 + ix)
+			var z := float(z0 + iz)
+			var h := heights[iz * nx + ix]
+			var hl := heights[iz * nx + maxi(ix - 1, 0)]
+			var hr := heights[iz * nx + mini(ix + 1, nx - 1)]
+			var hd := heights[maxi(iz - 1, 0) * nx + ix]
+			var hu := heights[mini(iz + 1, nz - 1) * nx + ix]
+			var n := Vector3(hl - hr, 2.0, hd - hu).normalized()
+			var blend := clampf(patch.get_noise_2d(x, z) * 0.9 + float(theme.get("patch", 0.35)), 0.0, 1.0)
+			# paths of the second surface on hills look odd; fade to base there
+			if h > 0.6:
+				blend *= 0.5
+			var wet := clampf(-h * 4.0, 0.0, 1.0)
+			if not any_water:
+				wet = 0.0
+			elif h >= 0.0 and _near_water(int(x), int(z)):
+				wet = 0.55
+			st.set_color(Color(blend, wet, 0, 1))
+			st.set_normal(n)
+			st.set_uv(Vector2(x, z))
+			st.add_vertex(Vector3(x, h, z))
+	for iz in nz - 1:
+		for ix in nx - 1:
+			var a := iz * nx + ix
+			var b := a + 1
+			var c := a + nx
+			var d := c + 1
+			st.add_index(a)
+			st.add_index(b)
+			st.add_index(d)
+			st.add_index(a)
+			st.add_index(d)
+			st.add_index(c)
+	var terrain := MeshInstance3D.new()
+	terrain.name = "Terrain"
+	terrain.mesh = st.commit()
+	terrain.material_override = _terrain_mat()
+	terrain.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	world.add_child(terrain)
 	if any_water:
-		var water := MeshInstance3D.new()
-		water.name = "Water"
-		water.mesh = wst.commit()
-		var wm := Models.mat(Color(0.25, 0.55, 0.85), 0.05, 0.0, 0.85)
-		wm.metallic = 0.2
-		water.material_override = wm
-		water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		world.add_child(water)
+		_build_water()
+	_scatter_scenery(noise)
+	_ambient_particles()
 	var bm := CapsuleMesh.new()
-	bm.radius = 0.035
-	bm.height = 0.26
+	bm.radius = 0.018
+	bm.height = 0.5
 	bm.radial_segments = 6
 	bm.rings = 1
 	_bullet_mesh_p = bm
 	_bullet_mesh_e = bm
 
 
-func _floor_mat(c: Color) -> StandardMaterial3D:
-	var fm := StandardMaterial3D.new()
-	fm.albedo_color = c
-	fm.roughness = 0.95
-	fm.metallic_specular = 0.1
-	return fm
+func _near_water(x: int, z: int) -> bool:
+	for oz in range(-2, 2):
+		for ox in range(-2, 2):
+			var c := Vector2i(x + ox, z + oz)
+			if in_bounds(c) and get_cell(c) == Cell.WATER:
+				return true
+	return false
+
+
+func _terrain_mat() -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = load("res://assets/shaders/terrain.gdshader")
+	var a: String = theme["ground"]
+	var b: String = theme["ground2"]
+	m.set_shader_parameter("a_albedo", Models.tex("res://assets/tex/%s_albedo.jpg" % a))
+	m.set_shader_parameter("a_normal", Models.tex("res://assets/tex/%s_normal.jpg" % a))
+	m.set_shader_parameter("a_rough", Models.tex("res://assets/tex/%s_rough.jpg" % a))
+	m.set_shader_parameter("b_albedo", Models.tex("res://assets/tex/%s_albedo.jpg" % b))
+	m.set_shader_parameter("b_normal", Models.tex("res://assets/tex/%s_normal.jpg" % b))
+	m.set_shader_parameter("b_rough", Models.tex("res://assets/tex/%s_rough.jpg" % b))
+	m.set_shader_parameter("tint_a", theme["tint"])
+	m.set_shader_parameter("tint_b", theme["tint2"])
+	m.set_shader_parameter("scale_a", 0.28)
+	m.set_shader_parameter("scale_b", 0.3)
+	var nt := NoiseTexture2D.new()
+	var fn := FastNoiseLite.new()
+	fn.frequency = 0.02
+	fn.fractal_octaves = 4
+	nt.noise = fn
+	nt.seamless = true
+	nt.width = 256
+	nt.height = 256
+	m.set_shader_parameter("macro_noise", nt)
+	return m
+
+
+func _build_water() -> void:
+	# One sheet over the whole play area just below ground level; the terrain
+	# dips under it where there is water, so shorelines follow the terrain.
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for z in H:
+		for x in W:
+			var near := false
+			for oz in range(-1, 2):
+				for ox in range(-1, 2):
+					var c := Vector2i(x + ox, z + oz)
+					if in_bounds(c) and get_cell(c) == Cell.WATER:
+						near = true
+			if not near:
+				continue
+			for q in [[0, 0], [1, 0], [1, 1], [0, 0], [1, 1], [0, 1]]:
+				var vx: int = x + q[0]
+				var vz: int = z + q[1]
+				var depth := -_water_depth(vx, vz) / 0.45
+				st.set_color(Color(1, 1, 1, clampf(1.0 - depth, 0.0, 1.0)))
+				st.set_normal(Vector3.UP)
+				st.add_vertex(Vector3(vx, -0.09, vz))
+	var water := MeshInstance3D.new()
+	water.name = "Water"
+	water.mesh = st.commit()
+	var m := ShaderMaterial.new()
+	m.shader = load("res://assets/shaders/water.gdshader")
+	m.set_shader_parameter("normal_tex", Models.tex("res://assets/tex/water_normal.jpg"))
+	if theme_name == "beach":
+		m.set_shader_parameter("deep", Color(0.02, 0.16, 0.22))
+		m.set_shader_parameter("shallow", Color(0.08, 0.32, 0.32))
+	water.material_override = m
+	water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	world.add_child(water)
+
+
+func _scatter_scenery(noise: FastNoiseLite) -> void:
+	# Trees and rocks on the hills around the battlefield so it reads as a real place.
+	var r := RandomNumberGenerator.new()
+	r.seed = 4242 + level_index
+	var styles: Array = theme["trees"]
+	var placed := 0
+	var tries := 0
+	while placed < 90 and tries < 600:
+		tries += 1
+		var x := r.randf_range(-MARGIN + 1, W + MARGIN - 1)
+		var z := r.randf_range(-MARGIN + 1, H + MARGIN - 1)
+		if x > -1.5 and x < W + 1.5 and z > -1.5 and z < H + 1.5:
+			continue
+		var node: Node3D
+		if r.randf() < 0.72:
+			node = Models.tree(styles[r.randi() % styles.size()], r.randi())
+			node.scale *= r.randf_range(0.9, 1.4)
+		else:
+			node = Models.block(theme["block"] if theme["block"] in ["rock", "sandrock", "snowrock"] else "rock", r.randi())
+			node.scale *= r.randf_range(0.7, 1.5)
+		node.position = Vector3(x, _height_at(x, z, noise) - 0.05, z)
+		node.rotation.y = r.randf() * TAU
+		world.add_child(node)
+		placed += 1
+
+
+func _ambient_particles() -> void:
+	var kind: String = theme["particles"]
+	if kind == "":
+		return
+	var p := GPUParticles3D.new()
+	var pm := ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	pm.emission_box_extents = Vector3(14, 4, 10)
+	var mi := QuadMesh.new()
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	mat.albedo_texture = Models.soft_circle()
+	mat.vertex_color_use_as_albedo = true
+	mi.material = mat
+	if kind == "snow":
+		p.amount = 500
+		p.lifetime = 6.0
+		pm.direction = Vector3(0.3, -1, 0.1)
+		pm.spread = 15.0
+		pm.initial_velocity_min = 0.8
+		pm.initial_velocity_max = 1.4
+		pm.gravity = Vector3(0, -0.4, 0)
+		pm.turbulence_enabled = true
+		pm.turbulence_noise_strength = 0.6
+		pm.color = Color(1, 1, 1, 0.9)
+		mi.size = Vector2(0.07, 0.07)
+	else:
+		p.amount = 70
+		p.lifetime = 7.0
+		pm.direction = Vector3(1, 0.05, 0.3)
+		pm.spread = 20.0
+		pm.initial_velocity_min = 0.6
+		pm.initial_velocity_max = 1.2
+		pm.gravity = Vector3.ZERO
+		pm.color = Color(0.85, 0.75, 0.6, 0.12)
+		pm.scale_min = 8.0
+		pm.scale_max = 16.0
+		mi.size = Vector2(0.25, 0.25)
+		mat.albedo_texture = Models.tex("res://assets/fx/smoke.png")
+	p.process_material = pm
+	p.draw_pass_1 = mi
+	p.visibility_aabb = AABB(Vector3(-20, -6, -16), Vector3(40, 14, 32))
+	p.preprocess = 4.0
+	p.position = Vector3(0, 3.5, 0)
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	p.name = "Weather"
+	camera_follow = p
+	world.add_child(p)
 
 
 func _setup_camera() -> void:
 	camera = Camera3D.new()
-	camera.fov = 42.0
+	camera.fov = 40.0
 	camera.near = 0.3
-	camera.far = 120.0
+	camera.far = 220.0
 	add_child(camera)
 	cam_focus = squad_center()
 	_update_camera(1.0)
@@ -642,14 +847,18 @@ func fire_bullet(src: Unit, at: Vector3, spread: float, dmg: float) -> void:
 	var mi := MeshInstance3D.new()
 	mi.mesh = _bullet_mesh_p
 	var col := Color(1.0, 0.95, 0.55) if src.team == Unit.Team.PLAYER else Color(1.0, 0.45, 0.25)
-	mi.material_override = Models.unshaded(col)
+	var bmat := Models.unshaded(col * 1.8)
+	bmat.albedo_color.a = 1.0
+	mi.material_override = bmat
+	Fx.muzzle_flash(world, from + dir * 0.35, dir)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.position = from + dir * 0.3
 	mi.look_at_from_position(mi.position, mi.position + dir + Vector3(0, 0.0001, 0), Vector3.UP)
 	mi.rotate_object_local(Vector3.RIGHT, PI / 2.0)
 	world.add_child(mi)
 	bullets.append({"pos": from + dir * 0.3, "vel": dir * BULLET_SPEED, "team": src.team, "dmg": dmg, "life": src.fire_range / BULLET_SPEED + 0.15, "node": mi, "src": src})
-	Sfx.play("shot" if src.team == Unit.Team.PLAYER else "enemy_shot", -10.0 if src.team == Unit.Team.PLAYER else -12.0)
+	var snd := "shot" if src.team == Unit.Team.PLAYER else ("sniper" if src.kind == "sniper" else "enemy_shot")
+	Sfx.play(snd, -9.0 if src.team == Unit.Team.PLAYER else -11.0, 0.1)
 
 
 func _step_bullets(dt: float) -> void:
@@ -816,7 +1025,7 @@ func _step_rockets(dt: float) -> void:
 
 
 func explode(pos: Vector3, radius: float, dmg: float, fort_dmg: int, src) -> void:
-	Fx.explosion(world, pos, radius, theme["block"])
+	Fx.explosion(world, pos, radius, debris_color())
 	Sfx.play("boom", 0.0)
 	shake = maxf(shake, 0.35)
 	var pc := cell_of(pos)
@@ -844,7 +1053,7 @@ func explode(pos: Vector3, radius: float, dmg: float, fort_dmg: int, src) -> voi
 			if f["hp"] <= 0:
 				_destroy_fort(f)
 			else:
-				message.emit("Fort damaged!", UI.YELLOW)
+				message.emit("Bunker damaged!", UI.YELLOW)
 	for e in enemies.duplicate():
 		if not e.alive:
 			continue
@@ -870,7 +1079,7 @@ func _destroy_fort(f: Dictionary) -> void:
 	tw.tween_property(node, "scale", Vector3(1.3, 0.05, 1.3), 0.4).set_ease(Tween.EASE_IN)
 	tw.tween_callback(node.queue_free)
 	shake = 0.6
-	message.emit("Fort destroyed!", UI.GREEN)
+	message.emit("Bunker destroyed!", UI.GREEN)
 
 
 func _step_pickups() -> void:
@@ -961,19 +1170,19 @@ func objective_status() -> Array:
 				for f in forts:
 					if f["alive"]:
 						fl += 1
-				out.append({"id": o, "text": "Destroy the forts (%d left)" % fl, "done": fl == 0})
+				out.append({"id": o, "text": "Destroy the bunkers (%d left)" % fl, "done": fl == 0})
 			"rescue":
 				var saved := 0
 				for h in hostages:
 					if h.rescued:
 						saved += 1
-				out.append({"id": o, "text": "Rescue the teddies (%d/%d)" % [saved, hostages.size()], "done": saved == hostages.size()})
+				out.append({"id": o, "text": "Rescue the pilots (%d/%d)" % [saved, hostages.size()], "done": saved == hostages.size()})
 			"extract":
 				var inside := false
 				for s in squad_and_tank():
 					if s.alive and not s.boarded and (s.kind != "tank" or s.occupied) and in_extraction(s.position):
 						inside = true
-				out.append({"id": o, "text": "Reach the green zone", "done": inside})
+				out.append({"id": o, "text": "Reach the landing zone", "done": inside})
 	return out
 
 
@@ -1023,7 +1232,7 @@ func on_unit_died(u: Unit) -> void:
 
 func on_hostage_found(_h: Unit) -> void:
 	Sfx.play("pickup")
-	message.emit("Teddy found! Lead it to the green zone.", UI.YELLOW)
+	message.emit("Pilot found! Lead them to the landing zone.", UI.YELLOW)
 
 
 func on_hostage_rescued(h: Unit) -> void:
@@ -1127,7 +1336,7 @@ func command_tap(world_pos: Vector3) -> void:
 			if crew_in_tank():
 				fire_shell_at(cell_center(f["cell"]))
 			else:
-				message.emit("Forts need explosives: use a grenade or rocket.", UI.YELLOW)
+				message.emit("Bunkers need explosives: use a grenade or rocket.", UI.YELLOW)
 			Fx.tap_marker(world, cell_center(f["cell"]), UI.RED)
 			return
 	move_squad(world_pos)
@@ -1233,12 +1442,14 @@ func _update_camera(delta: float) -> void:
 	want.x = clampf(want.x, 3.0, W - 3.0)
 	want.z = clampf(want.z, 2.0, H - 1.0)
 	cam_focus = cam_focus.lerp(want, minf(1.0, delta * 4.0))
-	var offset := Vector3(0, 12.5, 7.2) * zoom
+	var offset := Vector3(0, 9.2, 8.4) * zoom
 	var p := cam_focus + offset
 	if shake > 0.0:
 		shake = maxf(0.0, shake - delta * 1.5)
 		p += Vector3(rng.randf_range(-1, 1), 0, rng.randf_range(-1, 1)) * shake * 0.25
 	camera.look_at_from_position(p, cam_focus + Vector3(0, 0, -0.6), Vector3.UP)
+	if camera_follow:
+		camera_follow.position = Vector3(cam_focus.x, 3.5, cam_focus.z)
 
 
 # =================================================================== autoplay bot

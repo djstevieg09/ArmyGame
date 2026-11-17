@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://d3y6yprx4khni"
-path="res://.godot/imported/LilitaOne-Regular.ttf-eb7df87350daf03d98970d2ded42cc2c.fontdata"
+uid="uid://bddi472r432ow"
+path="res://.godot/imported/Oswald.ttf-76f6d6211733da71cf1dd9eb414356ae.fontdata"
 
 [deps]
 
-source_file="res://assets/LilitaOne-Regular.ttf"
-dest_files=["res://.godot/imported/LilitaOne-Regular.ttf-eb7df87350daf03d98970d2ded42cc2c.fontdata"]
+source_file="res://assets/Oswald.ttf"
+dest_files=["res://.godot/imported/Oswald.ttf-76f6d6211733da71cf1dd9eb414356ae.fontdata"]
 
 [params]
 

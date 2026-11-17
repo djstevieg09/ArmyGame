@@ -105,14 +105,13 @@ func _build() -> void:
 	root.add_child(_toast)
 	# hint
 	if m.data.has("hint"):
-		_hint = UI.panel(Color(0.98, 0.82, 0.25, 0.95))
-		var hl := UI.label(m.data["hint"], 26, Color(0.15, 0.12, 0.05), HORIZONTAL_ALIGNMENT_CENTER)
-		hl.remove_theme_color_override("font_shadow_color")
+		_hint = UI.panel(Color(0.08, 0.09, 0.07, 0.86))
+		var hl := UI.label(m.data["hint"], 24, UI.TEXT, HORIZONTAL_ALIGNMENT_CENTER)
 		hl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		hl.custom_minimum_size = Vector2(620, 0)
 		_hint.add_child(hl)
 		_hint.set_anchors_preset(Control.PRESET_CENTER_TOP)
-		_hint.position = Vector2(-350, 170)
+		_hint.position = Vector2(-350, 96)
 		_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		root.add_child(_hint)
 		var tw := _hint.create_tween()
@@ -320,7 +319,7 @@ func _show_lose() -> void:
 	var v := UI.vbox(14)
 	p.add_child(v)
 	v.add_child(UI.label("Squad lost!", 48, UI.RED, HORIZONTAL_ALIGNMENT_CENTER))
-	v.add_child(UI.label("Your toys fought bravely. Revive them and carry on?", 24, UI.TEXT, HORIZONTAL_ALIGNMENT_CENTER))
+	v.add_child(UI.label("Your squad fought bravely. Revive them and carry on?", 24, UI.TEXT, HORIZONTAL_ALIGNMENT_CENTER))
 	var row := UI.hbox(14)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	v.add_child(row)
@@ -333,7 +332,7 @@ func _show_lose() -> void:
 			if ok:
 				_revive())
 		row.add_child(ad)
-		var gem := UI.button("Revive (%d gems)" % Game.GEMS_FOR_REVIVE, Color(0.6, 0.35, 0.9), 24, Vector2(230, 72))
+		var gem := UI.button("Revive (%d gems)" % Game.GEMS_FOR_REVIVE, Color(0.4, 0.28, 0.55), 24, Vector2(230, 72))
 		gem.disabled = Game.gems < Game.GEMS_FOR_REVIVE
 		gem.pressed.connect(func():
 			if Game.gems >= Game.GEMS_FOR_REVIVE:

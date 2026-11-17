@@ -21,7 +21,7 @@ func _ready() -> void:
 
 func _apply_theme() -> void:
 	var t := Theme.new()
-	var f := load("res://assets/LilitaOne-Regular.ttf") as FontFile
+	var f := load("res://assets/Oswald.ttf") as FontFile
 	if f:
 		t.default_font = f
 	t.default_font_size = 26
@@ -47,7 +47,7 @@ func show_title() -> void:
 	var layer := CanvasLayer.new()
 	root.add_child(layer)
 	var shade := ColorRect.new()
-	shade.color = Color(0, 0, 0, 0.25)
+	shade.color = Color(0, 0, 0, 0.3)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(shade)
@@ -57,16 +57,20 @@ func show_title() -> void:
 	var v := UI.vbox(18)
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
 	c.add_child(v)
-	var logo := UI.label("TOY SQUAD", 120, UI.YELLOW, HORIZONTAL_ALIGNMENT_CENTER)
-	logo.add_theme_constant_override("outline_size", 18)
-	logo.add_theme_color_override("font_outline_color", Color(0.12, 0.2, 0.1))
+	var logo := UI.label("FIRETEAM FURY", 110, UI.TEXT, HORIZONTAL_ALIGNMENT_CENTER)
+	logo.add_theme_constant_override("outline_size", 14)
+	logo.add_theme_color_override("font_outline_color", Color(0.05, 0.06, 0.04))
+	logo.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.7))
 	logo.add_theme_constant_override("shadow_offset_y", 8)
 	v.add_child(logo)
-	v.add_child(UI.label("Tiny soldiers. Giant battlefields.", 32, UI.TEXT, HORIZONTAL_ALIGNMENT_CENTER))
+	var tag := UI.label("TEN WAR ZONES.  ONE FIRETEAM.  NO RETREAT.", 30, UI.YELLOW, HORIZONTAL_ALIGNMENT_CENTER)
+	tag.add_theme_constant_override("outline_size", 6)
+	tag.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	v.add_child(tag)
 	var sp := Control.new()
 	sp.custom_minimum_size = Vector2(0, 30)
 	v.add_child(sp)
-	var play := UI.button("PLAY", UI.GREEN, 48, Vector2(320, 100))
+	var play := UI.button("DEPLOY", UI.GREEN, 48, Vector2(340, 100))
 	play.pressed.connect(show_map)
 	var pc := CenterContainer.new()
 	pc.add_child(play)

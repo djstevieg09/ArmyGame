@@ -3,34 +3,34 @@ class_name Levels
 ##
 ## Legend
 ##   .  floor            #  solid block (indestructible)
-##   c  crate (explosives destroy it)     T  plant / pillar (solid, round)
+##   c  crates / drums (explosives destroy them)     T  tree (solid)
 ##   ~  water (blocks walking, not bullets)
 ##   S  squad spawn      X  extraction zone
-##   E  enemy rifleman   N  enemy sniper   B  enemy turret
-##   F  enemy fort (spawns enemies, explosives only)
-##   H  hostage toy to rescue
-##   g  grenade crate    r  rocket crate   V  player toy tank
+##   E  enemy rifleman   N  enemy sniper   B  machine-gun nest
+##   F  enemy bunker (spawns enemies, explosives only)
+##   H  prisoner to rescue
+##   g  grenade crate    r  rocket crate   V  player tank
 ##
 ## Objectives (all must be met): "kill_all", "forts", "rescue", "extract"
 
 const THEMES := {
-	"table": {"floor": Color(0.80, 0.62, 0.42), "floor2": Color(0.74, 0.56, 0.37), "block": Color(0.93, 0.92, 0.88), "accent": Color(0.95, 0.35, 0.30), "sky": Color(0.55, 0.62, 0.70)},
-	"tiles": {"floor": Color(0.82, 0.83, 0.86), "floor2": Color(0.36, 0.50, 0.70), "block": Color(0.98, 0.80, 0.25), "accent": Color(0.30, 0.65, 0.95), "sky": Color(0.62, 0.70, 0.80)},
-	"lawn": {"floor": Color(0.42, 0.68, 0.30), "floor2": Color(0.38, 0.63, 0.27), "block": Color(0.62, 0.48, 0.34), "accent": Color(0.95, 0.80, 0.25), "sky": Color(0.55, 0.78, 0.95)},
-	"sand": {"floor": Color(0.93, 0.82, 0.58), "floor2": Color(0.89, 0.77, 0.52), "block": Color(0.30, 0.60, 0.90), "accent": Color(0.95, 0.40, 0.35), "sky": Color(0.60, 0.80, 0.95)},
-	"pond": {"floor": Color(0.40, 0.64, 0.33), "floor2": Color(0.36, 0.59, 0.30), "block": Color(0.55, 0.55, 0.58), "accent": Color(0.95, 0.85, 0.30), "sky": Color(0.55, 0.75, 0.90)},
-	"carpet": {"floor": Color(0.36, 0.40, 0.68), "floor2": Color(0.33, 0.37, 0.63), "block": Color(0.95, 0.45, 0.55), "accent": Color(0.40, 0.90, 0.70), "sky": Color(0.30, 0.32, 0.45)},
-	"bath": {"floor": Color(0.55, 0.72, 0.78), "floor2": Color(0.50, 0.66, 0.73), "block": Color(0.92, 0.94, 0.96), "accent": Color(0.98, 0.85, 0.20), "sky": Color(0.65, 0.80, 0.85)},
-	"attic": {"floor": Color(0.55, 0.42, 0.32), "floor2": Color(0.50, 0.38, 0.29), "block": Color(0.72, 0.60, 0.45), "accent": Color(0.80, 0.30, 0.25), "sky": Color(0.22, 0.20, 0.22)},
-	"garage": {"floor": Color(0.50, 0.52, 0.55), "floor2": Color(0.46, 0.48, 0.51), "block": Color(0.85, 0.30, 0.25), "accent": Color(0.98, 0.78, 0.15), "sky": Color(0.25, 0.27, 0.30)},
-	"playroom": {"floor": Color(0.95, 0.75, 0.45), "floor2": Color(0.92, 0.70, 0.40), "block": Color(0.55, 0.35, 0.85), "accent": Color(0.30, 0.85, 0.45), "sky": Color(0.45, 0.40, 0.60)},
+	"grassland": {"ground": "grass", "ground2": "dirt", "tint": Color(0.95, 1.0, 0.9), "tint2": Color(1, 1, 1), "sky": "clear", "sun": Vector3(-50, -40, 0), "sun_color": Color(1.0, 0.96, 0.88), "sun_energy": 1.3, "fog": Color(0.7, 0.78, 0.85), "block": "rock", "trees": ["broadleaf", "bush", "pine"], "particles": ""},
+	"forest": {"ground": "mossy", "ground2": "dirt", "tint": Color(0.9, 0.95, 0.85), "tint2": Color(0.9, 0.9, 0.9), "sky": "overcast", "sun": Vector3(-55, -60, 0), "sun_color": Color(0.95, 0.95, 0.92), "sun_energy": 1.0, "fog": Color(0.62, 0.66, 0.66), "block": "sandbags", "trees": ["pine", "pine", "bush"], "particles": ""},
+	"jungle": {"ground": "mossy", "ground2": "grass", "tint": Color(0.8, 0.95, 0.75), "tint2": Color(0.75, 0.9, 0.7), "sky": "quarry", "sun": Vector3(-62, -20, 0), "sun_color": Color(1.0, 0.95, 0.85), "sun_energy": 1.25, "fog": Color(0.55, 0.65, 0.55), "block": "rock", "trees": ["jungle", "palm", "bush"], "particles": ""},
+	"desert": {"ground": "sand", "ground2": "dirt", "tint": Color(1.05, 0.98, 0.9), "tint2": Color(1.0, 0.85, 0.7), "sky": "clear", "sun": Vector3(-60, 30, 0), "sun_color": Color(1.0, 0.94, 0.82), "sun_energy": 1.45, "fog": Color(0.85, 0.78, 0.66), "block": "sandrock", "trees": ["dead", "palm"], "particles": "dust"},
+	"river": {"ground": "grass", "ground2": "mossy", "tint": Color(0.85, 0.95, 0.8), "tint2": Color(0.9, 0.9, 0.85), "sky": "spruit", "sun": Vector3(-35, -70, 0), "sun_color": Color(1.0, 0.85, 0.65), "sun_energy": 1.2, "fog": Color(0.75, 0.72, 0.65), "block": "rock", "trees": ["jungle", "broadleaf", "bush"], "particles": ""},
+	"town": {"patch": 0.15, "ground": "dirt", "ground2": "cobble", "tint": Color(0.95, 0.92, 0.88), "tint2": Color(1.1, 1.1, 1.1), "sky": "overcast", "sun": Vector3(-48, 50, 0), "sun_color": Color(0.95, 0.93, 0.9), "sun_energy": 1.05, "fog": Color(0.6, 0.6, 0.62), "block": "ruin_brick", "trees": ["broadleaf", "dead"], "particles": "dust"},
+	"beach": {"ground": "sand", "ground2": "grass", "tint": Color(1.1, 1.05, 0.95), "tint2": Color(0.9, 1.0, 0.8), "sky": "sunrise", "sun": Vector3(-40, 120, 0), "sun_color": Color(1.0, 0.88, 0.7), "sun_energy": 1.3, "fog": Color(0.8, 0.82, 0.85), "block": "sandbags", "trees": ["palm", "palm", "bush"], "particles": ""},
+	"snow": {"patch": 0.12, "ground": "snow", "ground2": "rock", "tint": Color(1, 1, 1), "tint2": Color(0.8, 0.82, 0.88), "sky": "overcast", "sun": Vector3(-38, -30, 0), "sun_color": Color(0.9, 0.93, 1.0), "sun_energy": 1.0, "fog": Color(0.82, 0.85, 0.9), "block": "snowrock", "trees": ["pine_snow", "pine_snow", "dead"], "particles": "snow"},
+	"desert_town": {"patch": 0.15, "ground": "sand", "ground2": "concrete", "tint": Color(1.05, 0.95, 0.85), "tint2": Color(0.75, 0.68, 0.58), "sky": "sunset", "sun": Vector3(-30, 70, 0), "sun_color": Color(1.0, 0.75, 0.5), "sun_energy": 1.35, "fog": Color(0.85, 0.7, 0.55), "block": "ruin_plaster", "trees": ["palm", "drums"], "particles": "dust"},
+	"base": {"patch": 0.1, "ground": "concrete", "ground2": "asphalt", "tint": Color(0.7, 0.7, 0.68), "tint2": Color(0.85, 0.85, 0.85), "sky": "quarry", "sun": Vector3(-52, -45, 0), "sun_color": Color(1.0, 0.95, 0.88), "sun_energy": 1.25, "fog": Color(0.68, 0.7, 0.72), "block": "barrier", "trees": ["drums", "bush"], "particles": ""},
 }
 
 const LIST := [
 	{
-		"name": "Breakfast Beachhead", "theme": "table", "squad": 3, "par": 90,
+		"name": "First Contact", "theme": "grassland", "squad": 3, "par": 90,
 		"objectives": ["kill_all"],
-		"brief": "The orange army has landed on the breakfast table. Clear them out.",
+		"brief": "Enemy scouts have crossed the border into the valley. Push them back.",
 		"hint": "Tap the ground to move your squad. Tap an enemy to focus fire.",
 		"map": [
 			"########################",
@@ -48,10 +48,10 @@ const LIST := [
 		],
 	},
 	{
-		"name": "Tile Trouble", "theme": "tiles", "squad": 3, "par": 120,
+		"name": "Mud and Bunkers", "theme": "forest", "squad": 3, "par": 120,
 		"objectives": ["forts"],
-		"brief": "An enemy fort is churning out troops on the kitchen tiles. Blow it up.",
-		"hint": "Forts only fall to explosives. Tap the grenade button, then tap the fort.",
+		"brief": "A concrete bunker in the forest keeps sending out troops. Blow it up.",
+		"hint": "Bunkers only fall to explosives. Tap the grenade button, then tap the bunker.",
 		"map": [
 			"##########################",
 			"#........................#",
@@ -69,10 +69,10 @@ const LIST := [
 		],
 	},
 	{
-		"name": "Lawn Offensive", "theme": "lawn", "squad": 4, "par": 150,
+		"name": "Jungle Sweep", "theme": "jungle", "squad": 4, "par": 150,
 		"objectives": ["kill_all"],
-		"brief": "Two forts guard the flower beds. Take back the whole lawn.",
-		"hint": "Pick up grenade crates (yellow) to refill your explosives.",
+		"brief": "Two bunkers hold the jungle road. Clear the whole area.",
+		"hint": "Pick up ammo crates (yellow glow) to refill your grenades.",
 		"map": [
 			"##############################",
 			"#............................#",
@@ -91,10 +91,10 @@ const LIST := [
 		],
 	},
 	{
-		"name": "Sandbox Siege", "theme": "sand", "squad": 4, "par": 150,
+		"name": "Dune Snipers", "theme": "desert", "squad": 4, "par": 150,
 		"objectives": ["kill_all"],
-		"brief": "Snipers dug in behind bucket walls. Flank them and stay out of their sights.",
-		"hint": "Snipers (with long rifles) shoot far. Use crates and walls for cover.",
+		"brief": "Snipers are dug in among the dunes. Flank them and stay out of their sights.",
+		"hint": "Snipers shoot far and hit hard. Use rocks and crates for cover.",
 		"map": [
 			"##############################",
 			"#............................#",
@@ -112,10 +112,10 @@ const LIST := [
 		],
 	},
 	{
-		"name": "Pond Rescue", "theme": "pond", "squad": 4, "par": 180,
+		"name": "River Rescue", "theme": "river", "squad": 4, "par": 180,
 		"objectives": ["rescue"],
-		"brief": "Two of our toys are held across the garden pond. Bring them home to the green flag.",
-		"hint": "Walk next to a hostage and it follows you. Lead it to the green zone.",
+		"brief": "Two downed pilots are held across the river. Bring them to the landing zone.",
+		"hint": "Walk next to a prisoner (orange) and they follow you. Lead them to the landing zone.",
 		"map": [
 			"##############################",
 			"#............................#",
@@ -133,10 +133,10 @@ const LIST := [
 		],
 	},
 	{
-		"name": "Carpet Commandos", "theme": "carpet", "squad": 4, "par": 180,
+		"name": "Ghost Town", "theme": "town", "squad": 4, "par": 180,
 		"objectives": ["kill_all"],
-		"brief": "Turrets guard the bedroom carpet. Rockets punch through them fast.",
-		"hint": "Tap the rocket button, then a turret. Rockets fly straight and hit hard.",
+		"brief": "Machine-gun nests cover the ruined streets. Rockets punch through them fast.",
+		"hint": "Tap the rocket button, then a gun nest. Rockets fly straight and hit hard.",
 		"map": [
 			"################################",
 			"#..............................#",
@@ -155,9 +155,9 @@ const LIST := [
 		],
 	},
 	{
-		"name": "Bathtub Bay", "theme": "bath", "squad": 4, "par": 200,
+		"name": "Beach Assault", "theme": "beach", "squad": 4, "par": 200,
 		"objectives": ["kill_all"],
-		"brief": "A toy tank is parked by the bath mat. Climb in and roll over the defences.",
+		"brief": "A tank has come ashore with you. Climb in and roll over the beach defences.",
 		"hint": "Tap the tank to board it. Tap enemies to fire shells. Use the EXIT button to hop out.",
 		"map": [
 			"################################",
@@ -176,10 +176,10 @@ const LIST := [
 		],
 	},
 	{
-		"name": "Dusty Attic", "theme": "attic", "squad": 4, "par": 220,
+		"name": "Frozen Pass", "theme": "snow", "squad": 4, "par": 220,
 		"objectives": ["rescue", "extract"],
-		"brief": "A lost teddy squad is trapped among the boxes. Find them, then get everyone out.",
-		"hint": "Rescue both hostages, then reach the green zone with your squad.",
+		"brief": "A recon team is trapped in the mountain pass. Find them, then get everyone out.",
+		"hint": "Rescue both prisoners, then reach the landing zone with your squad.",
 		"map": [
 			"################################",
 			"#..S...#..........#.........H..#",
@@ -198,10 +198,10 @@ const LIST := [
 		],
 	},
 	{
-		"name": "Garage Gauntlet", "theme": "garage", "squad": 5, "par": 240,
+		"name": "Convoy Breakout", "theme": "desert_town", "squad": 5, "par": 240,
 		"objectives": ["extract"],
-		"brief": "Punch through the garage defences and reach the far door. The tank will help.",
-		"hint": "You only need to reach the green zone. Clearing turrets on the way makes it easier.",
+		"brief": "Break through the desert town and reach the landing zone. The tank will help.",
+		"hint": "You only need to reach the landing zone. Clearing gun nests on the way makes it easier.",
 		"map": [
 			"####################################",
 			"#..................................#",
@@ -218,10 +218,10 @@ const LIST := [
 		],
 	},
 	{
-		"name": "Playroom HQ", "theme": "playroom", "squad": 5, "par": 300,
+		"name": "Iron Fortress", "theme": "base", "squad": 5, "par": 300,
 		"objectives": ["kill_all", "rescue"],
-		"brief": "The orange general's headquarters. Free the prisoners and flatten every fort.",
-		"hint": "Final battle. Save rockets for turrets and grenades for forts.",
+		"brief": "The enemy headquarters. Free the prisoners and flatten every bunker.",
+		"hint": "Final battle. Save rockets for gun nests and grenades for bunkers.",
 		"map": [
 			"####################################",
 			"#..................................#",

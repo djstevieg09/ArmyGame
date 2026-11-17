@@ -1,6 +1,6 @@
 extends Node
-## Procedurally synthesised sound effects and an original looping march.
-## Everything is generated at start-up, so the game ships with no audio files.
+## Gunfire and explosions are real recordings (CC0, Free Firearm Sound
+## Library); UI chirps and the music loop are synthesised at start-up.
 
 const RATE := 22050
 
@@ -12,9 +12,10 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	_rng.seed = 1234
-	_streams["shot"] = _make_shot()
-	_streams["enemy_shot"] = _make_shot(0.7)
-	_streams["boom"] = _make_boom()
+	_streams["shot"] = _wav("rifle", _make_shot())
+	_streams["enemy_shot"] = _wav("enemy_rifle", _make_shot(0.7))
+	_streams["sniper"] = _wav("sniper", _make_shot(0.5))
+	_streams["boom"] = _wav("explosion", _make_boom())
 	_streams["pickup"] = _make_chirp([880.0, 1320.0], 0.07)
 	_streams["click"] = _make_chirp([660.0], 0.04)
 	_streams["win"] = _make_chirp([523.0, 659.0, 784.0, 1046.0], 0.12)
@@ -22,7 +23,7 @@ func _ready() -> void:
 	_streams["hurt"] = _make_chirp([220.0, 160.0], 0.06)
 	_streams["throw"] = _make_whoosh()
 	_streams["rescue"] = _make_chirp([784.0, 988.0, 1175.0], 0.08)
-	for i in 10:
+	for i in 16:
 		var p := AudioStreamPlayer.new()
 		p.bus = "Master"
 		add_child(p)
@@ -33,6 +34,13 @@ func _ready() -> void:
 	add_child(_music)
 	if Game.music_on and DisplayServer.get_name() != "headless":
 		_music.play()
+
+
+func _wav(file: String, fallback: AudioStream) -> AudioStream:
+	var path := "res://assets/sfx/%s.wav" % file
+	if ResourceLoader.exists(path):
+		return load(path)
+	return fallback
 
 
 func play(name: String, volume_db := 0.0, pitch_jitter := 0.08) -> void:

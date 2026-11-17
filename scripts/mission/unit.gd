@@ -53,22 +53,22 @@ func setup(mission, t: int, k: String, color: Color) -> void:
 	match kind:
 		"soldier":
 			hp = 3.0; speed = 3.1; fire_range = 6.8; fire_rate = 0.45; spread = 0.07; damage = 1.0
-			model = Models.soldier(color, "soldier")
+			model = Models.soldier(0, "soldier", color)
 		"rifle":
 			hp = 3.0; speed = 2.2; fire_range = 7.0; fire_rate = 1.1; spread = 0.12; damage = 1.0
-			model = Models.soldier(color, "rifle")
+			model = Models.soldier(1, "rifle")
 		"sniper":
 			hp = 2.0; speed = 1.8; fire_range = 10.5; fire_rate = 2.4; spread = 0.035; damage = 2.0
-			model = Models.soldier(color, "sniper")
+			model = Models.soldier(1, "sniper", Color(0.5, 0.46, 0.38))
 		"turret":
 			hp = 10.0; speed = 0.0; fire_range = 8.0; fire_rate = 0.85; spread = 0.1; damage = 1.0
-			model = Models.turret(color)
+			model = Models.turret(1)
 		"hostage":
 			hp = 999.0; speed = 2.9; fire_range = 0.0
-			model = Models.hostage()
+			model = Models.soldier(2)
 		"tank":
 			hp = 24.0; speed = 2.7; fire_range = 8.0; fire_rate = 1.1; spread = 0.03; damage = 6.0
-			model = Models.tank(color)
+			model = Models.tank(0)
 	max_hp = hp
 	add_child(model)
 	body = model.get_node_or_null("Body")
@@ -306,20 +306,21 @@ func _animate(dt: float) -> void:
 			model.rotation.y = lerp_angle(model.rotation.y, want, minf(1.0, dt * 12.0))
 	if body:
 		if kind in ["soldier", "rifle", "sniper", "hostage"]:
-			var moving := not path.is_empty()
-			body.position.y = absf(sin(hop)) * 0.09 if moving else lerpf(body.position.y, 0.0, dt * 10.0)
-			body.rotation.z = sin(hop) * 0.12 if moving else 0.0
-			if rescued:
-				hop += dt * 7.0
-				body.position.y = absf(sin(hop)) * 0.15
+			if alive:
+				var moving := not path.is_empty()
+				if moving:
+					Models.soldier_play(model, "Run", speed / 3.0)
+				else:
+					Models.soldier_play(model, "Idle", 1.0)
 		elif kind == "turret":
 			if target != null:
 				var d := target.position - position
 				body.rotation.y = lerp_angle(body.rotation.y, atan2(-d.x, -d.z), minf(1.0, dt * 6.0))
 		elif kind == "tank":
 			body.position.y = sin(hop * 2.0) * 0.012
-	var s := 1.0 + flash * 1.2
-	model.scale = Vector3(s, 1.0 / s, s)
+	if kind in ["turret", "tank"]:
+		var s := 1.0 + flash * 0.4
+		model.scale = Vector3(s, s, s)
 	if hp_bar:
 		hp_bar.visible = alive and hp < max_hp and (kind != "tank" or occupied)
 		_hp_bar_fill.scale.x = clampf(hp / max_hp, 0.0, 1.0)
@@ -357,12 +358,13 @@ func die(from_pos: Vector3) -> void:
 	away = away.normalized()
 	m.on_unit_died(self)
 	if kind in ["soldier", "rifle", "sniper"]:
-		# The toy topples over and stays on the floor for a while.
+		# No death clip in the rig: freeze the pose and tip the body over backwards.
+		Models.soldier_stop(model)
 		model.rotation.y = atan2(-away.x, -away.z) + PI
 		var tw := create_tween()
-		tw.tween_property(model, "rotation:x", -PI / 2.0, 0.35).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
-		tw.parallel().tween_property(model, "position", away * 0.25 + Vector3(0, 0.08, 0), 0.35)
-		tw.tween_interval(4.0)
-		tw.tween_property(model, "scale", Vector3(0.01, 0.01, 0.01), 0.4)
+		tw.tween_property(body, "rotation:x", -PI / 2.0, 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.parallel().tween_property(body, "position", Vector3(0, 0.12, 0.35), 0.45)
+		tw.tween_interval(5.0)
+		tw.tween_property(model, "position:y", -0.6, 1.2)
 	else:
 		model.visible = false
