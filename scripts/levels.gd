@@ -23,7 +23,7 @@ const THEMES := {
 	"beach": {"ground": "sand", "ground2": "grass", "tint": Color(1.1, 1.05, 0.95), "tint2": Color(0.9, 1.0, 0.8), "sky": "sunrise", "sun": Vector3(-40, 120, 0), "sun_color": Color(1.0, 0.88, 0.7), "sun_energy": 1.3, "fog": Color(0.8, 0.82, 0.85), "block": "sandbags", "trees": ["palm", "palm", "bush"], "particles": ""},
 	"snow": {"patch": 0.12, "ground": "snow", "ground2": "rock", "tint": Color(1, 1, 1), "tint2": Color(0.8, 0.82, 0.88), "sky": "overcast", "sun": Vector3(-38, -30, 0), "sun_color": Color(0.9, 0.93, 1.0), "sun_energy": 1.0, "fog": Color(0.82, 0.85, 0.9), "block": "snowrock", "trees": ["pine_snow", "pine_snow", "dead"], "particles": "snow"},
 	"desert_town": {"patch": 0.15, "ground": "sand", "ground2": "concrete", "tint": Color(1.05, 0.95, 0.85), "tint2": Color(0.75, 0.68, 0.58), "sky": "sunset", "sun": Vector3(-30, 70, 0), "sun_color": Color(1.0, 0.75, 0.5), "sun_energy": 1.35, "fog": Color(0.85, 0.7, 0.55), "block": "ruin_plaster", "trees": ["palm", "drums"], "particles": "dust"},
-	"base": {"patch": 0.1, "ground": "concrete", "ground2": "asphalt", "tint": Color(0.7, 0.7, 0.68), "tint2": Color(0.85, 0.85, 0.85), "sky": "quarry", "sun": Vector3(-52, -45, 0), "sun_color": Color(1.0, 0.95, 0.88), "sun_energy": 1.25, "fog": Color(0.68, 0.7, 0.72), "block": "barrier", "trees": ["drums", "bush"], "particles": ""},
+	"base": {"patch": -0.25, "ground": "concrete", "ground2": "asphalt", "tint": Color(0.7, 0.7, 0.68), "tint2": Color(0.85, 0.85, 0.85), "sky": "quarry", "sun": Vector3(-52, -45, 0), "sun_color": Color(1.0, 0.95, 0.88), "sun_energy": 1.25, "fog": Color(0.68, 0.7, 0.72), "block": "barrier", "trees": ["drums", "bush"], "particles": ""},
 }
 
 const LIST := [

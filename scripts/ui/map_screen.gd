@@ -90,6 +90,9 @@ func _build_bottom_bar() -> void:
 	var daily := UI.button("Daily", UI.ORANGE, 28, Vector2(140, 70))
 	daily.pressed.connect(_show_daily)
 	bar.add_child(daily)
+	var settings := UI.button("Settings", UI.GREY, 26, Vector2(170, 70))
+	settings.pressed.connect(_show_settings)
+	bar.add_child(settings)
 	var stars := UI.label("", 28, UI.YELLOW, HORIZONTAL_ALIGNMENT_RIGHT)
 	stars.name = "StarTotal"
 	stars.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -205,6 +208,33 @@ func _close_button(v: VBoxContainer, text := "Close") -> void:
 	var cc := CenterContainer.new()
 	cc.add_child(b)
 	v.add_child(cc)
+
+
+func _show_settings() -> void:
+	var v := _open_popup()
+	v.add_child(UI.label("Settings", 46, UI.YELLOW, HORIZONTAL_ALIGNMENT_CENTER))
+	var rows := [
+		["Music", func(): return Game.music_on, func(): Sfx.set_music(not Game.music_on)],
+		["Sound effects", func(): return Game.sfx_on, func():
+			Game.sfx_on = not Game.sfx_on
+			Game.save_game()],
+		["Gore (blood and gibs)", func(): return Game.gore, func():
+			Game.gore = not Game.gore
+			Game.save_game()],
+	]
+	for r in rows:
+		var b := UI.button("", UI.GREY, 26, Vector2(380, 64))
+		var get_v: Callable = r[1]
+		var toggle: Callable = r[2]
+		var name_s: String = r[0]
+		b.text = "%s: %s" % [name_s, "On" if get_v.call() else "Off"]
+		b.pressed.connect(func():
+			toggle.call()
+			b.text = "%s: %s" % [name_s, "On" if get_v.call() else "Off"])
+		var cc := CenterContainer.new()
+		cc.add_child(b)
+		v.add_child(cc)
+	_close_button(v)
 
 
 func _show_brief(i: int) -> void:

@@ -7,6 +7,7 @@ const RATE := 22050
 var _streams := {}
 var _pool: Array[AudioStreamPlayer] = []
 var _music: AudioStreamPlayer
+var _music_track := ""
 var _rng := RandomNumberGenerator.new()
 
 
@@ -22,18 +23,19 @@ func _ready() -> void:
 	_streams["lose"] = _make_chirp([392.0, 330.0, 262.0], 0.18)
 	_streams["hurt"] = _make_chirp([220.0, 160.0], 0.06)
 	_streams["throw"] = _make_whoosh()
+	_streams["yelp"] = _make_yelp()
 	_streams["rescue"] = _make_chirp([784.0, 988.0, 1175.0], 0.08)
 	for i in 16:
 		var p := AudioStreamPlayer.new()
 		p.bus = "Master"
 		add_child(p)
 		_pool.append(p)
+	_streams["win"] = _ogg("win", _streams["win"])
+	_streams["lose"] = _ogg("lose", _streams["lose"])
 	_music = AudioStreamPlayer.new()
-	_music.stream = _make_music()
-	_music.volume_db = -12.0
+	_music.volume_db = -6.0
 	add_child(_music)
-	if Game.music_on and DisplayServer.get_name() != "headless":
-		_music.play()
+	music("theme")
 
 
 func _wav(file: String, fallback: AudioStream) -> AudioStream:
@@ -55,11 +57,46 @@ func play(name: String, volume_db := 0.0, pitch_jitter := 0.08) -> void:
 			return
 
 
+## Switch the soundtrack: "theme" (menus) or "mission". Loops forever.
+func music(track: String) -> void:
+	if _music_track == track and _music.playing:
+		return
+	_music_track = track
+	var st := _ogg(track, null)
+	if st == null:
+		return
+	st.loop = true
+	_music.stream = st
+	if Game.music_on and DisplayServer.get_name() != "headless":
+		_music.volume_db = -30.0
+		_music.play()
+		create_tween().tween_property(_music, "volume_db", -6.0, 0.8)
+
+
+## Duck the music under a jingle, then bring it back.
+func jingle(name: String) -> void:
+	play(name, 0.0, 0.0)
+	if _music.playing:
+		var tw := create_tween()
+		tw.tween_property(_music, "volume_db", -28.0, 0.2)
+		tw.tween_interval(3.6)
+		tw.tween_property(_music, "volume_db", -6.0, 1.2)
+
+
+func _ogg(file: String, fallback: AudioStream) -> AudioStream:
+	var path := "res://assets/music/%s.ogg" % file
+	if ResourceLoader.exists(path):
+		return load(path)
+	return fallback
+
+
 func set_music(on: bool) -> void:
 	Game.music_on = on
 	Game.save_game()
 	if on and not _music.playing:
-		_music.play()
+		var t := _music_track
+		_music_track = ""
+		music(t)
 	elif not on:
 		_music.stop()
 
@@ -125,6 +162,24 @@ func _make_whoosh() -> AudioStreamWAV:
 	return _to_stream(out)
 
 
+## A short cartoon "yowch!": a buzzy voice-like tone with a quick pitch drop.
+func _make_yelp() -> AudioStreamWAV:
+	var n := int(RATE * 0.32)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var ph := 0.0
+	for i in n:
+		var t := float(i) / RATE
+		var f := 520.0 * exp(-t * 4.5) + 170.0 + sin(t * 70.0) * 18.0
+		ph += f / RATE
+		var saw := fmod(ph, 1.0) * 2.0 - 1.0
+		# two crude formants ("ow") from sine products
+		var v := saw * 0.5 + sin(TAU * ph * 3.0) * 0.25 + sin(TAU * ph * 5.0) * 0.12
+		var env := minf(1.0, t * 60.0) * clampf((0.32 - t) * 8.0, 0.0, 1.0)
+		out[i] = v * env * 0.45
+	return _to_stream(out)
+
+
 func _make_chirp(freqs: Array, note_len: float) -> AudioStreamWAV:
 	var per := int(RATE * note_len)
 	var out := PackedFloat32Array()
@@ -137,45 +192,6 @@ func _make_chirp(freqs: Array, note_len: float) -> AudioStreamWAV:
 			var sq := 1.0 if sin(TAU * f * t) > 0.0 else -1.0
 			out[k * per + i] = (sin(TAU * f * t) * 0.6 + sq * 0.15) * env * 0.5
 	return _to_stream(out)
-
-
-## A short original marching-band loop: snare pattern, bass line and a toy
-## glockenspiel melody in C major, 112 bpm, 8 bars.
-func _make_music() -> AudioStreamWAV:
-	var bpm := 112.0
-	var beat := 60.0 / bpm
-	var bars := 8
-	var total := int(RATE * beat * 4.0 * bars)
-	var out := PackedFloat32Array()
-	out.resize(total)
-	var notes := {"C4": 261.6, "D4": 293.7, "E4": 329.6, "F4": 349.2, "G4": 392.0, "A4": 440.0, "B4": 493.9, "C5": 523.3, "D5": 587.3, "E5": 659.3, "G5": 784.0, "C3": 130.8, "F3": 174.6, "G3": 196.0, "A3": 220.0}
-	# melody: [note, start_beat, length_beats]
-	var melody := [
-		["E5", 0, 1], ["C5", 1, 0.5], ["D5", 1.5, 0.5], ["E5", 2, 1], ["G5", 3, 1],
-		["D5", 4, 1], ["B4", 5, 0.5], ["C5", 5.5, 0.5], ["D5", 6, 2],
-		["C5", 8, 1], ["A4", 9, 0.5], ["B4", 9.5, 0.5], ["C5", 10, 1], ["E5", 11, 1],
-		["D5", 12, 1.5], ["C5", 13.5, 0.5], ["G4", 14, 2],
-		["E5", 16, 1], ["E5", 17, 0.5], ["D5", 17.5, 0.5], ["C5", 18, 1], ["G4", 19, 1],
-		["A4", 20, 1], ["C5", 21, 1], ["D5", 22, 2],
-		["E5", 24, 0.5], ["D5", 24.5, 0.5], ["C5", 25, 1], ["B4", 26, 1], ["D5", 27, 1],
-		["C5", 28, 3], ["G4", 31, 1],
-	]
-	var bass_roots := ["C3", "G3", "A3", "G3", "F3", "C3", "G3", "C3"]
-	for i in total:
-		out[i] = 0.0
-	# bass: root on beats 1 and 3, fifth on 2 and 4 (oom-pah)
-	for bar in bars:
-		var root: float = notes[bass_roots[bar]]
-		for b in 4:
-			var f := root if b % 2 == 0 else root * 1.5
-			_add_tone(out, f, (bar * 4 + b) * beat, beat * 0.45, 0.22, "tri")
-	for m in melody:
-		_add_tone(out, notes[m[0]], float(m[1]) * beat, float(m[2]) * beat * 0.92, 0.16, "bell")
-	# snare: tight rolls on the off-beats
-	for step in bars * 8:
-		var accent := 1.0 if step % 2 == 1 else 0.45
-		_add_snare(out, step * beat * 0.5, 0.08 * accent)
-	return _to_stream(out, true)
 
 
 func _add_tone(out: PackedFloat32Array, f: float, start: float, length: float, amp: float, kind: String) -> void:

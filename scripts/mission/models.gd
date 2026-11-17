@@ -216,7 +216,7 @@ static func soldier(team: int, kind := "soldier", tint_override = null) -> Node3
 	root.add_child(body)
 	var inst: Node3D = _soldier_scene.instantiate()
 	inst.scale = Vector3.ONE * 0.56
-	inst.rotation.y = PI  # model faces +Z; the game faces -Z
+	# the rig already faces -Z, which is "forward" for units
 	body.add_child(inst)
 	var tint: Color = PLAYER_TINT if team == 0 else (ENEMY_TINT if team == 1 else POW_TINT)
 	if tint_override != null:
@@ -245,16 +245,13 @@ static func soldier(team: int, kind := "soldier", tint_override = null) -> Node3
 		ap.play("Idle")
 		ap.seek(randf() * 2.0, true)
 		root.set_meta("anim", ap)
-	# rifle held at the hip
+	# rifle held across the body, pointing forward (-Z)
 	if team != 2:
-		var sk: Skeleton3D = inst.find_child("Skeleton3D", true, false)
-		if sk:
-			var att := BoneAttachment3D.new()
-			att.bone_name = "mixamorig:RightHand"
-			sk.add_child(att)
-			var gun := _rifle(kind == "sniper")
-			gun.scale = Vector3.ONE / 0.56
-			att.add_child(gun)
+		var gun := _rifle(kind == "sniper")
+		gun.rotation_degrees = Vector3(-90, 0, 0)
+		gun.position = Vector3(0.09, 0.56, -0.12)
+		gun.scale = Vector3.ONE * 1.05
+		body.add_child(gun)
 	return root
 
 

@@ -240,6 +240,12 @@ func _show_pause() -> void:
 		Sfx.set_music(not Game.music_on)
 		music.text = "Music: %s" % ("On" if Game.music_on else "Off"))
 	v.add_child(music)
+	var gore := UI.button("Gore: %s" % ("On" if Game.gore else "Off"), UI.GREY, 26)
+	gore.pressed.connect(func():
+		Game.gore = not Game.gore
+		Game.save_game()
+		gore.text = "Gore: %s" % ("On" if Game.gore else "Off"))
+	v.add_child(gore)
 	var quit := UI.button("Abandon mission", UI.RED, 26)
 	quit.pressed.connect(func():
 		get_tree().paused = false

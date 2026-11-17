@@ -329,22 +329,24 @@ func _animate(dt: float) -> void:
 		_ring.visible = alive and not boarded
 
 
-func hurt(amount: float, from_pos: Vector3) -> void:
+func hurt(amount: float, from_pos: Vector3, explosive := false) -> void:
 	if not alive or team == Team.HOSTAGE or boarded:
 		return
 	if kind == "tank" and not occupied:
 		return
 	hp -= amount
 	flash = 0.15
+	if Game.gore and kind in ["soldier", "rifle", "sniper"]:
+		Fx.blood_spray(m.world, position, position - from_pos, 10 if not explosive else 20)
 	if team == Team.ENEMY and not saw_player:
 		saw_player = true
 		react_cd = 0.4
 		alert_pos = from_pos
 	if hp <= 0.0:
-		die(from_pos)
+		die(from_pos, explosive)
 
 
-func die(from_pos: Vector3) -> void:
+func die(from_pos: Vector3, explosive := false) -> void:
 	alive = false
 	stop()
 	if _ring:
@@ -358,13 +360,31 @@ func die(from_pos: Vector3) -> void:
 	away = away.normalized()
 	m.on_unit_died(self)
 	if kind in ["soldier", "rifle", "sniper"]:
-		# No death clip in the rig: freeze the pose and tip the body over backwards.
 		Models.soldier_stop(model)
 		model.rotation.y = atan2(-away.x, -away.z) + PI
+		Sfx.play("yelp", -4.0, 0.25)
 		var tw := create_tween()
-		tw.tween_property(body, "rotation:x", -PI / 2.0, 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		tw.parallel().tween_property(body, "position", Vector3(0, 0.12, 0.35), 0.45)
-		tw.tween_interval(5.0)
+		if explosive:
+			# Blown off their feet: a comic cartwheel through the air.
+			var land := away * randf_range(1.2, 2.0)
+			var spin := randf_range(1.5, 2.5) * TAU * (1 if randf() < 0.5 else -1)
+			tw.tween_property(model, "position", land * 0.5 + Vector3(0, randf_range(1.4, 2.2), 0), 0.32).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+			tw.parallel().tween_property(body, "rotation:x", spin, 0.64)
+			tw.tween_property(model, "position", land, 0.32).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+			tw.tween_callback(func():
+				body.rotation.x = -PI / 2.0
+				body.position = Vector3(0, 0.12, 0.35)
+				if Game.gore:
+					Fx.blood_pool(m.world, position + land, 1.1))
+			if Game.gore:
+				Fx.gibs(m.world, position, Models.PLAYER_TINT if team == Team.PLAYER else Models.ENEMY_TINT)
+		else:
+			# No death clip in the rig: freeze the pose and tip the body over backwards.
+			tw.tween_property(body, "rotation:x", -PI / 2.0, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+			tw.parallel().tween_property(body, "position", Vector3(0, 0.12, 0.35), 0.45)
+			if Game.gore:
+				tw.tween_callback(func(): Fx.blood_pool(m.world, position + away * 0.35, 0.9))
+		tw.tween_interval(6.0)
 		tw.tween_property(model, "position:y", -0.6, 1.2)
 	else:
 		model.visible = false

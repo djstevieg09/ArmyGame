@@ -240,6 +240,65 @@ static func muzzle_flash(parent: Node3D, pos: Vector3, dir: Vector3) -> void:
 	tw.tween_callback(q.queue_free)
 
 
+## Gore (only when the player turns it on): a spray of blood droplets.
+static func blood_spray(parent: Node3D, pos: Vector3, dir: Vector3, amount := 14) -> void:
+	var pm := ParticleProcessMaterial.new()
+	pm.direction = (dir.normalized() + Vector3(0, 0.6, 0)).normalized()
+	pm.spread = 30.0
+	pm.initial_velocity_min = 1.5
+	pm.initial_velocity_max = 3.5
+	pm.gravity = Vector3(0, -9.0, 0)
+	pm.scale_min = 0.05
+	pm.scale_max = 0.12
+	pm.color = Color(0.55, 0.03, 0.03)
+	pm.collision_mode = ParticleProcessMaterial.COLLISION_DISABLED
+	var mat := _sprite_mat("res://assets/fx/soft.png", false, Color(0.6, 0.02, 0.02))
+	_particles(parent, pos + Vector3(0, 0.5, 0), amount, 0.6, mat, 1.0, pm)
+
+
+## Gore: a blood pool decal on the ground that fades out after a while.
+static func blood_pool(parent: Node3D, pos: Vector3, size := 1.0) -> void:
+	var d := Decal.new()
+	d.texture_albedo = Models.tex("res://assets/fx/blood.png")
+	d.size = Vector3(size, 1.0, size)
+	d.position = Vector3(pos.x, 0.0, pos.z)
+	d.rotation.y = randf() * TAU
+	d.upper_fade = 0.2
+	d.lower_fade = 0.2
+	d.scale = Vector3(0.2, 1, 0.2)
+	parent.add_child(d)
+	var tw := d.create_tween()
+	tw.tween_property(d, "scale", Vector3.ONE, 1.2).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(18.0)
+	tw.tween_property(d, "modulate:a", 0.0, 3.0)
+	tw.tween_callback(d.queue_free)
+
+
+## Gore: chunks thrown by an explosion.
+static func gibs(parent: Node3D, pos: Vector3, tint: Color) -> void:
+	var meat := Models.mat(Color(0.45, 0.04, 0.04), 0.35)
+	var cloth := Models.mat(tint.darkened(0.3), 0.8)
+	for i in 7:
+		var g := MeshInstance3D.new()
+		g.mesh = Models.box_mesh(Vector3.ONE * randf_range(0.06, 0.13))
+		g.material_override = meat if i % 2 == 0 else cloth
+		g.position = pos + Vector3(0, 0.4, 0)
+		parent.add_child(g)
+		var v := Vector3(randf_range(-1, 1), 0, randf_range(-1, 1)).normalized() * randf_range(0.8, 2.2)
+		var land := g.position + v + Vector3(0, -0.35, 0)
+		land.y = 0.04
+		var peak := g.position.lerp(land, 0.5) + Vector3(0, randf_range(0.6, 1.4), 0)
+		var tw := g.create_tween()
+		var t := randf_range(0.45, 0.7)
+		tw.tween_property(g, "position", peak, t * 0.5).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		tw.parallel().tween_property(g, "rotation", Vector3(randf() * 8, randf() * 8, randf() * 8), t)
+		tw.tween_property(g, "position", land, t * 0.5).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+		tw.tween_interval(10.0)
+		tw.tween_property(g, "scale", Vector3.ONE * 0.01, 1.0)
+		tw.tween_callback(g.queue_free)
+	blood_spray(parent, pos, Vector3.UP, 30)
+
+
 static func spark(parent: Node3D, pos: Vector3, color := Color(1, 0.85, 0.5)) -> void:
 	var pm := ParticleProcessMaterial.new()
 	pm.direction = Vector3.UP

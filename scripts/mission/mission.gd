@@ -87,6 +87,8 @@ func setup(index: int, roster: Array, opts := {}) -> void:
 	_parse_map(roster, opts.get("god", false))
 	_build_floor()
 	_setup_camera()
+	if not demo:
+		(func(): message.emit(["Go go go!", "Move out!", "Lock and load!", "Let's do this!"][index % 4], UI.YELLOW)).call_deferred()
 
 
 # =================================================================== building
@@ -106,7 +108,7 @@ func _build_environment() -> void:
 	env.ambient_light_energy = 0.75
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
-	env.tonemap_exposure = 0.95
+	env.tonemap_exposure = 1.02
 	env.tonemap_white = 6.0
 	env.glow_enabled = true
 	env.glow_intensity = 0.55
@@ -120,8 +122,8 @@ func _build_environment() -> void:
 	env.fog_sky_affect = 0.25
 	env.fog_aerial_perspective = 0.4
 	env.adjustment_enabled = true
-	env.adjustment_contrast = 1.08
-	env.adjustment_saturation = 1.06
+	env.adjustment_contrast = 1.06
+	env.adjustment_saturation = 1.2
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
@@ -1054,19 +1056,24 @@ func explode(pos: Vector3, radius: float, dmg: float, fort_dmg: int, src) -> voi
 				_destroy_fort(f)
 			else:
 				message.emit("Bunker damaged!", UI.YELLOW)
+	var blasted := 0
 	for e in enemies.duplicate():
 		if not e.alive:
 			continue
 		var d: float = Vector2(e.position.x - pos.x, e.position.z - pos.z).length()
 		if d <= radius:
 			var k := 1.0 - d / radius * 0.5
-			e.hurt(dmg * k * (2.0 if e.kind == "turret" else 1.0), pos)
+			e.hurt(dmg * k * (2.0 if e.kind == "turret" else 1.0), pos, true)
 			if not e.alive:
 				_credit_kill(src)
+				blasted += 1
+	if blasted >= 2 and not demo:
+		var calls := ["", "", "Double whammy!", "Triple trouble!", "Mega boom!"]
+		message.emit(calls[mini(blasted, 4)], UI.ORANGE)
 	for s in player_targets():
 		var d2: float = Vector2(s.position.x - pos.x, s.position.z - pos.z).length()
 		if d2 <= radius * 0.8:
-			s.hurt(dmg * 0.4, pos)
+			s.hurt(dmg * 0.4, pos, true)
 	stats_changed.emit()
 
 
@@ -1198,16 +1205,21 @@ func _check_end() -> void:
 		state = "won"
 		for s in alive_squad():
 			s.stop()
-		Sfx.play("win")
+		Sfx.jingle("win")
 		ended.emit(true)
 		return
 	if alive_squad().is_empty():
 		state = "lost"
-		Sfx.play("lose")
+		Sfx.jingle("lose")
 		ended.emit(false)
 
 
+const QUIPS := ["Gotcha!", "Oof!", "Bye bye!", "Down he goes!", "Nailed it!", "Ouch!", "Tango down!", "See ya!", "Boom!"]
+
+
 func on_unit_died(u: Unit) -> void:
+	if u.team == Unit.Team.ENEMY and u.kind in ["rifle", "sniper"] and rng.randf() < 0.4:
+		Fx.float_text(world, u.position, QUIPS[rng.randi() % QUIPS.size()], Color(1, 0.95, 0.7))
 	if u.team == Unit.Team.PLAYER and u.kind == "soldier":
 		losses += 1
 		message.emit("%s is down!" % u.display_name, UI.RED)
@@ -1400,7 +1412,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _touches.size() >= 2:
 			var d := _pinch_distance()
 			if _pinch_start > 1.0:
-				zoom = clampf(_zoom_start * _pinch_start / maxf(1.0, d), 0.6, 1.6)
+				zoom = clampf(_zoom_start * _pinch_start / maxf(1.0, d), 0.45, 1.6)
 		else:
 			var start: Vector2 = _touches[event.index]["start"]
 			if start.distance_to(event.position) > 22.0:
@@ -1412,9 +1424,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				pan_offset = pan_offset.limit_length(14.0)
 	elif event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			zoom = clampf(zoom * 0.9, 0.6, 1.6)
+			zoom = clampf(zoom * 0.9, 0.45, 1.6)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			zoom = clampf(zoom * 1.1, 0.6, 1.6)
+			zoom = clampf(zoom * 1.1, 0.45, 1.6)
 
 
 func _pinch_distance() -> float:

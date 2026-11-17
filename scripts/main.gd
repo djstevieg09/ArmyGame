@@ -38,6 +38,7 @@ func _swap(n: Node) -> void:
 # ------------------------------------------------------------------- title
 
 func show_title() -> void:
+	Sfx.music("theme")
 	var root := Node.new()
 	# Live demo battle in the background, played by the bot.
 	var demo := Mission.new()
@@ -88,6 +89,7 @@ func show_title() -> void:
 
 func show_map() -> void:
 	get_tree().paused = false
+	Sfx.music("theme")
 	var map := MapScreen.new()
 	map.main = self
 	_swap(map)
@@ -97,6 +99,7 @@ func start_mission(index: int) -> void:
 	if not Game.has_life_for(index):
 		return
 	_level = index
+	Sfx.music("mission")
 	var d := Levels.get_level(index)
 	var roster := Game.squad_for(d["squad"])
 	_roster_used = roster
@@ -151,8 +154,12 @@ func _screenshot_mode(what: String) -> void:
 	elif what.begins_with("mission:"):
 		var i := int(what.substr(8)) - 1
 		Game.unlimited_lives = true
+		Game.gore = "--gore" in OS.get_cmdline_user_args()
 		start_mission(i)
 		_mission.autoplay = true
+		for a in OS.get_cmdline_user_args():
+			if a.begins_with("--zoom="):
+				_mission.zoom = float(a.substr(7))
 	var secs := 6.0
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--secs="):

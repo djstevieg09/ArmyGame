@@ -46,6 +46,7 @@ var bonus_grenades := 0
 var bonus_rockets := 0
 var music_on := true
 var sfx_on := true
+var gore := false  # off by default (keeps the store age rating low)
 var interstitial_counter := 0
 
 
@@ -221,7 +222,7 @@ func save_game() -> void:
 		"recruit_counter": recruit_counter, "skin": skin, "owned_skins": owned_skins,
 		"no_ads": no_ads, "unlimited_lives": unlimited_lives, "last_daily_day": last_daily_day,
 		"daily_streak": daily_streak, "bonus_grenades": bonus_grenades, "bonus_rockets": bonus_rockets,
-		"music_on": music_on, "sfx_on": sfx_on, "interstitial_counter": interstitial_counter,
+		"music_on": music_on, "sfx_on": sfx_on, "gore": gore, "interstitial_counter": interstitial_counter,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f:
@@ -261,6 +262,7 @@ func load_game() -> void:
 	bonus_rockets = int(data.get("bonus_rockets", 0))
 	music_on = bool(data.get("music_on", true))
 	sfx_on = bool(data.get("sfx_on", true))
+	gore = bool(data.get("gore", false))
 	interstitial_counter = int(data.get("interstitial_counter", 0))
 
 
