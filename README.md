@@ -79,7 +79,7 @@ tests/                        automated level tests
 | Ground, rock, wood, metal, brick, concrete textures (`assets/tex/*_albedo/normal/rough.jpg`) | ambientCG | CC0 |
 | HDR skies (`assets/sky/`) | Poly Haven | CC0 |
 | Gunshot and explosion sounds (`assets/sfx/`) | Free Firearm Sound Library | CC0 |
-| Music (`assets/music/`) | Original, synthesised by `tools/make_music.py` | Ours |
+| Music (`assets/music/`) | Original score composed in `tools/make_score.py`, rendered with the FluidR3 GM soundfont | Ours (soundfont: MIT) |
 | Fonts Black Ops One and Oswald | Google Fonts | SIL OFL (see `assets/OFL-*.txt`) |
 | Animated soldier (`assets/models/soldier.glb`) | three.js examples (Mixamo character and animations) | Mixamo terms: free to use inside games, not to redistribute on its own. **Check before store release**, or swap for a CC0 character. |
 
